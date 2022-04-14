@@ -16,9 +16,11 @@ def add_peer(comp_list):
 global relay_status
 global control_signal
 control_signal = "off"
+global current_status
+current_status = [0,0,0,0,0]
 global data
 data = []
-temp_value = [0,0,0]
+temp_value = [0,0,0,0,0,0]
 
 
 # A WLAN interface must be active to send()/recv()
@@ -128,11 +130,17 @@ def get_temp(sensor_name, sensor_data):
 
 def check_temp(tdss, tss, control_signal):
     
-    if (tdss - tss) > 1 and control_signal == "on":
-        return "yes"
+    if (tdss - tss) >= 1 and control_signal == "on": 
+    #means the temperature is below treashhold
+        return "below"
+     
+    elif (tss - tdss) >= 1 and control_signal == "on":
+    #means the temperature is above treashhold
+        return "above"
     
-    elif (tss - tdss) > 1 and control_signal == "on":
-        return "no"
+    elif (tss - tdss) < 1 and (tdss - tss) < 1 and control_signal == "on":
+    #means the temperature is above treashhold
+        return "within"
     
     else: 
         return "control off"
@@ -214,9 +222,6 @@ def send_relay_signal(status, relays, current_status, triangle):
                 acknowledgement_check( acknowledgements, relays, [ str(value), str(value), str(value), '4'], [str(1), str(1), str(1), str(0)] )
                 # *** Theoretically can be this but need to test first  
                 #acknowledgement_check( acknowledgements, relays, [ str(value), str(value), str(value)], [str(1), str(1), str(1)] )
-                
-                
-                
                 current_status[value - 1] = [1]
 
     
@@ -245,9 +250,9 @@ def send_relay_signal(status, relays, current_status, triangle):
             current_status[value - 1] = [0]
         
         current_status[4] = 1
-
-        
-    return current_status
+    
+    elif status == "no_signal":
+        current_status[4] = 0
         
 
 # Function that sets the relay status to off when tTotal is done
@@ -255,9 +260,7 @@ def tTotal_timer_callback(t):
      
     relay_status = "off"  
     control_signal = "on"
-    send_relay_signal(relay_status, relays)
-    
-    return
+    send_relay_signal(relay_status, relays, [1,2,3])
 
 
 def cel_to_fah(tc):
@@ -293,8 +296,6 @@ def sensor_value_check(temp_value):
     
     return check
 
-
-# Function that calculate when a  
  
 # Function to send relay signal with the use of the relay status      
 def send_relay_signal_test(data, relays):
@@ -384,7 +385,6 @@ def send_relay_signal_test(data, relays):
         
         acknowledgement_check( acknowledgements, relays, [ '1', '2', '3', '4' ], [str(0), str(0), str(0), str(0)] )
 
-    return
 
 # Fucnction that checks if the data was sent succesfully
 # Can make this into a for loop later -> once it works well

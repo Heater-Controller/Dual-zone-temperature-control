@@ -69,7 +69,7 @@ def calculate_tind(tdss, tss):
 def calcuate_tT(t1, t2, t3):
     
     tT = (t1 * t2 * t3) / ((t1 * t2) + (t2 * t3) + (t1 *t3))
-    return tT
+    return int(tT)
 
 
 # Fucntion that calcuate tTotal, which is the total time required to reach a special
@@ -77,7 +77,7 @@ def calcuate_tT(t1, t2, t3):
 def calculate_tTotal(tind, tT):
     
     tTotal = tind * tT
-    return tTotal
+    return int(tTotal)
 
 
 # Function gives sensors specific names on the basis of their converted integer addresses
@@ -388,7 +388,7 @@ def send_relay_signal_test(data, relays):
 
 # Fucnction that checks if the data was sent succesfully
 # Can make this into a for loop later -> once it works well
-def acknowledgement_check(_acknowledgements, _relays, _relay_number, _commands):
+def acknowledgement_check(_acknowledgements, relays, _relay_number, _commands):
     
     if _acknowledgements[0] == False: # Relay 1 acknowledgement was false -> the Relay did not receive the command
         print('-> Relay ' + str(_relay_number[0]) + ' did not receive anything')

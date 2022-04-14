@@ -113,7 +113,7 @@ def get_temp(sensor_name, sensor_data):
         
     if sensor_name == 'sensor 3':
         temp_value[2] = sensor_data
-        
+     
     if sensor_name == 'sensor 4':
         temp_value[3] = sensor_data
         
@@ -122,7 +122,7 @@ def get_temp(sensor_name, sensor_data):
         
     if sensor_name == 'sensor 6':
         temp_value[5] = sensor_data
-        
+       
     return temp_value
 
 
@@ -163,51 +163,85 @@ def recieve_temp_data():
 # Function to send relay signal with the use of the relay status      
 def send_relay_signal(status, relays, current_status, triangle):
     
+    acknowledgements = [] # Keeps track of which relays acknowledged they received a signal 
+    
     if status == "on": 
 
-        e.send(relays['1'], str(1), True)
-        e.send(relays['2'], str(1), True)
-        e.send(relays['3'], str(1), True)
-        e.send(relays['4'], str(1), True)
+        acknowledgements.append(    e.send(relays['1'], str(1), True)    ) # True if the message was received ... False if it was not received
+        acknowledgements.append(    e.send(relays['2'], str(1), True)    )
+        acknowledgements.append(    e.send(relays['3'], str(1), True)    )
+        acknowledgements.append(    e.send(relays['4'], str(1), True)    )
+        
+        acknowledgement_check( acknowledgements, relays, ['1', '2', '3', '4'], [str(1), str(1), str(1), str(1)] ) # acknowledgment and retransmission protocol 
+        
         current_status = [1, 1, 1, 1, 0]
         
     elif status == "off": 
          
-        e.send(relays['1'], str(0), True) 
-        e.send(relays['2'], str(0), True)
-        e.send(relays['3'], str(0), True)
-        e.send(relays['4'], str(0), True)
+        acknowledgements.append(    e.send(relays['1'], str(0), True)    )
+        acknowledgements.append(    e.send(relays['2'], str(0), True)    )
+        acknowledgements.append(    e.send(relays['3'], str(0), True)    )
+        acknowledgements.append(    e.send(relays['4'], str(0), True)    )
+        
+        acknowledgement_check( acknowledgements, relays, ['1', '2', '3', '4'], [str(0), str(0), str(0), str(0)] )
+        
         current_status = [0, 0, 0, 0, 0]
  
     elif status == "soft_turn_on":
         
         if current_status[4] == 1: #Means hard turn_on is active
             
-            e.send(relays[str(triangle[0])], str(1), True) 
+            acknowledgements.append(    e.send(relays[str(triangle[0])], str(1), True)    )
+            acknowledgements.append(True) # *** Theoretically we do not need it but need to test first
+            acknowledgements.append(True)
+            acknowledgements.append(True)
+            
+            acknowledgement_check( acknowledgements, relays, [ str(triangle[0]), '2', '3', '4'], [str(1), str(0), str(0), str(0)] )
+            # *** Theoretically can be this but need to test first  
+            #acknowledgement_check( acknowledgements, relays, [ str(triangle[0])], [str(1)] )
+                                        
             current_status[triangle[0] - 1] = 1
 
         else:
             
             for value in triangle:
                 
-                e.send(relays[str(value)], str(1), True) 
-                e.send(relays[str(value)], str(1), True)
-                e.send(relays[str(value)], str(1), True)
+                acknowledgements.append(    e.send(relays[str(value)], str(1), True)    ) 
+                acknowledgements.append(    e.send(relays[str(value)], str(1), True)    )
+                acknowledgements.append(    e.send(relays[str(value)], str(1), True)    )
+                acknowledgements.append(True)
+                
+                acknowledgement_check( acknowledgements, relays, [ str(value), str(value), str(value), '4'], [str(1), str(1), str(1), str(0)] )
+                # *** Theoretically can be this but need to test first  
+                #acknowledgement_check( acknowledgements, relays, [ str(value), str(value), str(value)], [str(1), str(1), str(1)] )
+                
+                
+                
                 current_status[value - 1] = [1]
 
     
     elif status == "soft_turn_off":
         
-        e.send(relays[str(triangle[0])], str(0), True) 
+        acknowledgements.append(    e.send(relays[str(triangle[0])], str(0), True)    )
+        acknowledgements.append(True)
+        acknowledgements.append(True)
+        acknowledgements.append(True)
+        
+        acknowledgement_check( acknowledgements, relays, [ str(triangle[0]), '2', '3', '4' ], [str(0), str(0), str(0), str(0)] )
+        
         current_status[triangle[0] - 1] = 0
                 
     elif status == "hard_turn_off":
         
         for value in triangle:
             
-            e.send(relays[str(value)], str(0), True) 
-            e.send(relays[str(value)], str(0), True)
-            e.send(relays[str(value)], str(0), True)
+            acknowledgements.append(    e.send(relays[str(value)], str(0), True)    )
+            acknowledgements.append(    e.send(relays[str(value)], str(0), True)    )
+            acknowledgements.append(    e.send(relays[str(value)], str(0), True)    )
+            acknowledgements.append(True)
+            
+            acknowledgement_check( acknowledgements, relays, [ str(triangle[0]), '2', '3', '4' ], [str(0), str(0), str(0), str(0)] )
+            
             current_status[value - 1] = [0]
         
         current_status[4] = 1
@@ -267,51 +301,141 @@ def send_relay_signal_test(data, relays):
     
     print("Relay singal sent = " + str(data))
     
+    acknowledgements = [] # Keeps track of which relays acknowledged they received a signal 
+    
     if data == 0:
         
-        e.send(relays['relay_1'], str(0), True)
-        e.send(relays['relay_2'], str(0), True)
-        e.send(relays['relay_3'], str(0), True)
-        e.send(relays['relay_4'], str(0), True)
+        acknowledgements.append(    e.send(relays['1'], str(0), True)    )
+        acknowledgements.append(    e.send(relays['2'], str(0), True)    )
+        acknowledgements.append(    e.send(relays['3'], str(0), True)    )
+        acknowledgements.append(    e.send(relays['4'], str(0), True)    )
+    
+        acknowledgement_check( acknowledgements, relays, [ '1', '2', '3', '4' ], [str(0), str(0), str(0), str(0)] )
         
     elif data == 1:
-        e.send(relays['relay_1'], str(1), True)
+        acknowledgements.append(    e.send(relays['1'], str(1), True)    )
+        acknowledgements.append(True)
+        acknowledgements.append(True)
+        acknowledgements.append(True)
+        
+        acknowledgement_check( acknowledgements, relays, ['1', '2', '3', '4'], [str(1), str(0), str(0), str(0)] )
+        #acknowledgement_check( acknowledgements, relays, ['1'], [str(1)] )
         
     elif data == 2:
-        e.send(relays['relay_2'], str(1), True)
-        e.send(relays['relay_1'], str(0), True)
-       
+        acknowledgements.append(    e.send(relays['2'], str(1), True)    )
+        acknowledgements.append(    e.send(relays['1'], str(0), True)    )
+        acknowledgements.append(True)
+        acknowledgements.append(True)
+        
+        acknowledgement_check( acknowledgements, relays, [ '2', '1', '3', '4' ], [str(1), str(0), str(0), str(0)] )
+        #acknowledgement_check( acknowledgements, relays, [ '2', '1' ], [str(1), str(0)] )
         
     elif data == 3:
-        e.send(relays['relay_3'], str(1), True)
-        e.send(relays['relay_2'], str(0), True)
+        acknowledgements.append(    e.send(relays['3'], str(1), True)    )
+        acknowledgements.append(    e.send(relays['2'], str(0), True)    )
+        acknowledgements.append(True)
+        acknowledgements.append(True)
+        
+        acknowledgement_check( acknowledgements, relays, [ '3', '2', '1', '4' ], [str(1), str(0), str(0), str(0)] )
+        #acknowledgement_check( acknowledgements, relays, [ '3', '2' ], [str(1), str(0) )
         
     elif data == 4:
-        e.send(relays['relay_4'], str(1), True)
-        e.send(relays['relay_3'], str(0), True)
+        acknowledgements.append(    e.send(relays['4'], str(1), True)    )
+        acknowledgements.append(    e.send(relays['3'], str(0), True)    )
+        acknowledgements.append(True)
+        acknowledgements.append(True)
+        
+        acknowledgement_check( acknowledgements, relays, [ '4', '3', '1', '2' ], [str(1), str(0), str(0), str(0)] )
+        #acknowledgement_check( acknowledgements, relays, [ '4', '3' ], [str(1), str(0)] )
     
     elif data == 5:
-        e.send(relays['relay_4'], str(0), True)
+        acknowledgements.append(    e.send(relays['4'], str(0), True)    )
+        acknowledgements.append(True)
+        acknowledgements.append(True)
+        acknowledgements.append(True)
+        
+        acknowledgement_check( acknowledgements, relays, [ '4', '3', '1', '2' ], [str(0), str(0), str(0), str(0)] )
+        #acknowledgement_check( acknowledgements, relays, [ '4' ], [str(0)] )
         
     elif data == 6:
         
-        e.send(relays['relay_1'], str(1), True)
-        e.send(relays['relay_2'], str(1), True)
-        e.send(relays['relay_3'], str(1), True)
-        e.send(relays['relay_4'], str(1), True)
-    
+        acknowledgements.append(    e.send(relays['1'], str(1), True)    )
+        acknowledgements.append(    e.send(relays['2'], str(1), True)    )
+        acknowledgements.append(    e.send(relays['3'], str(1), True)    )
+        acknowledgements.append(    e.send(relays['4'], str(1), True)    )
+        
+        acknowledgement_check( acknowledgements, relays, [ '1', '2', '3', '4' ], [str(1), str(1), str(1), str(1)] )
+            
     elif data == 7:
 
-        e.send(relays['relay_1'], str(1), True)
-        e.send(relays['relay_2'], str(1), True)
-        e.send(relays['relay_3'], str(1), True)
-        e.send(relays['relay_4'], str(1), True)
+        acknowledgements.append(    e.send(relays['1'], str(1), True)    )
+        acknowledgements.append(    e.send(relays['2'], str(1), True)    )
+        acknowledgements.append(    e.send(relays['3'], str(1), True)    )
+        acknowledgements.append(    e.send(relays['4'], str(1), True)    )
+        
+        acknowledgement_check( acknowledgements, relays, [ '1', '2', '3', '4' ], [str(1), str(1), str(1), str(1)] )
     
     elif data == 8:
 
-        e.send(relays['relay_1'], str(0), True)
-        e.send(relays['relay_2'], str(0), True)
-        e.send(relays['relay_3'], str(0), True)
-        e.send(relays['relay_4'], str(0), True)
+        acknowledgements.append(    e.send(relays['1'], str(0), True)    )
+        acknowledgements.append(    e.send(relays['2'], str(0), True)    )
+        acknowledgements.append(    e.send(relays['3'], str(0), True)    )
+        acknowledgements.append(    e.send(relays['4'], str(0), True)    )
+        
+        acknowledgement_check( acknowledgements, relays, [ '1', '2', '3', '4' ], [str(0), str(0), str(0), str(0)] )
 
+    return
+
+# Fucnction that checks if the data was sent succesfully
+# Can make this into a for loop later -> once it works well
+def acknowledgement_check(_acknowledgements, _relays, _relay_number, _commands):
+    
+    if _acknowledgements[0] == False: # Relay 1 acknowledgement was false -> the Relay did not receive the command
+        print('-> Relay ' + str(_relay_number[0]) + ' did not receive anything')
+        print('   The ESP will try to send 100 times before giving up if the relay does not acknowledge it received the ON/OFF command')
+        
+        ack = False
+        count_acknowledgement_tries = 100
+        while count_acknowledgement_tries > 1:
+            ack = e.send(relays[_relay_number[0]], _commands[0], True)
+            count_acknowledgement_tries -= 1
+            if ack == True:
+                break    
+        
+    if _acknowledgements[1] == False: # Relay 2 acknowledgement
+        print('-> Relay ' + str(_relay_number[1]) + ' did not receive anything')
+        print('   The ESP will try to send 100 times before giving up if the relay does not acknowledge it received the ON/OFF command')
+        
+        ack = False
+        count_acknowledgement_tries = 100
+        while count_acknowledgement_tries > 1:
+            ack = e.send(relays[_relay_number[1]], _commands[1], True)
+            count_acknowledgement_tries -= 1
+            if ack == True:
+                break
+            
+    if _acknowledgements[2] == False: # Relay 3 acknowledgement
+        print('-> Relay ' + str(_relay_number[2]) + ' did not receive anything')
+        print('   The ESP will try to send 100 times before giving up if the relay does not acknowledge it received the ON/OFF command')
+        
+        ack = False
+        count_acknowledgement_tries = 100
+        while count_acknowledgement_tries > 1:
+            ack = e.send(relays[_relay_number[2]], _commands[2], True)
+            count_acknowledgement_tries -= 1
+            if ack == True:
+                break
+            
+    if _acknowledgements[3] == False: # Relay 4 acknowledgement
+        print('-> Relay ' + str(_relay_number[3]) + ' did not receive anything')
+        print('   The ESP will try to send 100 times before giving up if the relay does not acknowledge it received the ON/OFF command')
+        
+        ack = False
+        count_acknowledgement_tries = 100
+        while count_acknowledgement_tries > 1:
+            ack = e.send(relays[_relay_number[3]], _commands[3], True)
+            count_acknowledgement_tries -= 1
+            if ack == True:
+                break
+        
     return

@@ -51,10 +51,14 @@ relay_status = "on"
 send_relay_signal(relay_status, relays, triangle1)    
 
 def tT1_timer_callback(t):
+    
+    relay_status = "soft_turn_off"
     send_relay_signal(relay_status, relays, triangle1)
 
 
 def tT2_timer_callback(t):
+    
+    relay_status = "soft_turn_off"
     send_relay_signal(relay_status, relays, triangle2)
 
 while True:
@@ -108,6 +112,3 @@ while True:
     print("Temperature value: " + str(temp_value))
     print("Tss value: " + str(tss1))
     print("Tss value: " + str(tss2))
-
-        
-        

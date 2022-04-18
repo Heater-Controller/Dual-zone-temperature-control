@@ -110,7 +110,8 @@ def get_temp(sensor_name, sensor_data):
         
     if sensor_name == 'sensor 6':
         temp_value[5] = sensor_data
-
+    
+    return temp_value
 
 # Function to abstract relay names 
 def get_relay(dict):

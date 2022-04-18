@@ -67,7 +67,8 @@ while True:
     temp_value = recieve_temp_data()
     tss1 = calculate_tss(temp_value[0], temp_value[1], temp_value[2])  
     tss2 = calculate_tss(temp_value[3], temp_value[4], temp_value[5])  
-
+    display_SS(tss1, tss1)
+    
     # perform a temperature check to determinne which range we are in. 
     # Above, bellow or withim the desired temperature range 
     temp_control_check1 = check_temp(tdss1, tss1, control_signal)

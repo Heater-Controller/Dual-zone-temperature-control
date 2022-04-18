@@ -228,6 +228,7 @@ def send_relay_signal(status, relays, current_status, triangle):
         acknowledgements.append(    e.send(relays['4'], str(1), True)    )
         
         acknowledgement_check( acknowledgements, relays, ['1', '2', '3', '4'], [str(1), str(1), str(1), str(1)] ) # acknowledgment and retransmission protocol 
+        display_relays(1, 1, 1, 1)
         
         current_status = [1, 1, 1, 1, 0]
         
@@ -239,6 +240,7 @@ def send_relay_signal(status, relays, current_status, triangle):
         acknowledgements.append(    e.send(relays['4'], str(0), True)    )
         
         acknowledgement_check( acknowledgements, relays, ['1', '2', '3', '4'], [str(0), str(0), str(0), str(0)] )
+        display_relays(0, 0, 0, 0)
         
         current_status = [0, 0, 0, 0, 0]
  
@@ -254,8 +256,9 @@ def send_relay_signal(status, relays, current_status, triangle):
             acknowledgement_check( acknowledgements, relays, [ str(triangle[0]), '2', '3', '4'], [str(1), str(0), str(0), str(0)] )
             # *** Theoretically can be this but need to test first  
             #acknowledgement_check( acknowledgements, relays, [ str(triangle[0])], [str(1)] )
-                                        
-            current_status[triangle[0] - 1] = 1
+            display_relays(1, 1, 1, 1)
+            
+            current_status[[0] - 1] = 1
 
         else:
             

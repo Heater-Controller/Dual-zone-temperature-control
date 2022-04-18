@@ -4,6 +4,48 @@ import network
 from esp import espnow
 import math
 
+
+#Function sends data to ThingSpeak cloud server using socket API and HTTP GET request
+def display_SS(field1, field2):
+    
+    URL = 'https://api.thingspeak.com/update?api_key='
+    key = '280D6470RK8VLC7N'
+    header = '&field1=' + str(field1) + '&field2=' + str(field2)
+    new = URL + key + header
+    
+    _, _, host, path = new.split('/', 3)
+    addr = socket.getaddrinfo(host, 80)[0][-1]
+
+    sobj = socket.socket()
+    sobj.connect(addr)
+    sobj.send(bytes('GET /%s HTTP/1.0\r\nHost: %s\r\n\r\n' % (path, host), 'utf8'))
+    
+    data = sobj.recv(100)
+    sobj.close()
+    
+    return
+
+
+def display_relays(relay_1, relay_2, relay_3, relay_4):
+    
+    URL = 'https://api.thingspeak.com/update?api_key='
+    key = '280D6470RK8VLC7N'
+    header = '&field3=' + str(relay_1) + '&field4=' + str(relay_2) + '&field5=' + str(relay_3) + '&field6=' + str(relay_4)
+    new = URL + key + header
+    
+    _, _, host, path = new.split('/', 3)
+    addr = socket.getaddrinfo(host, 80)[0][-1]
+
+    sobj = socket.socket()
+    sobj.connect(addr)
+    sobj.send(bytes('GET /%s HTTP/1.0\r\nHost: %s\r\n\r\n' % (path, host), 'utf8'))
+    
+    data = sobj.recv(100)
+    sobj.close()
+    
+    return
+
+
 #Adding components to master's communication protocol
 def add_peer(comp_list):
     
@@ -27,11 +69,16 @@ temp_value = [0,0,0,0,0,0]
 w0 = network.WLAN(network.STA_IF)
 w0.active(True)
 
-
 # ESP protocol initalization
 e = espnow.ESPNow()
 e.init()
 
+#Setting up network credentials
+SSID = "OnePlus Nord N10 5G-ba2b"                 
+Password = "aryan1234"
+
+#Connecting client ESP to Wifi 
+w0.connect(SSID, Password)
 
 # MAC addresses of temperature sensors' wifi interfaces
 temp_sensors = { 'temp_sensor_1' : b'\x94\x3c\xc6\x6d\x17\x70', 'temp_sensor_2' : b'\x94\x3c\xc6\x6d\x1b\x68',
@@ -312,6 +359,7 @@ def send_relay_signal_test(data, relays):
         acknowledgements.append(    e.send(relays['4'], str(0), True)    )
     
         acknowledgement_check( acknowledgements, relays, [ '1', '2', '3', '4' ], [str(0), str(0), str(0), str(0)] )
+        display_relays(0, 0, 0, 0)
         
     elif data == 1:
         acknowledgements.append(    e.send(relays['1'], str(1), True)    )
@@ -321,6 +369,7 @@ def send_relay_signal_test(data, relays):
         
         acknowledgement_check( acknowledgements, relays, ['1', '2', '3', '4'], [str(1), str(0), str(0), str(0)] )
         #acknowledgement_check( acknowledgements, relays, ['1'], [str(1)] )
+        display_relays(1, 0, 0, 0)
         
     elif data == 2:
         acknowledgements.append(    e.send(relays['2'], str(1), True)    )
@@ -330,6 +379,7 @@ def send_relay_signal_test(data, relays):
         
         acknowledgement_check( acknowledgements, relays, [ '2', '1', '3', '4' ], [str(1), str(0), str(0), str(0)] )
         #acknowledgement_check( acknowledgements, relays, [ '2', '1' ], [str(1), str(0)] )
+        display_relays(0, 1, 0, 0)
         
     elif data == 3:
         acknowledgements.append(    e.send(relays['3'], str(1), True)    )
@@ -339,6 +389,7 @@ def send_relay_signal_test(data, relays):
         
         acknowledgement_check( acknowledgements, relays, [ '3', '2', '1', '4' ], [str(1), str(0), str(0), str(0)] )
         #acknowledgement_check( acknowledgements, relays, [ '3', '2' ], [str(1), str(0) )
+        display_relays(0, 0, 1, 0)
         
     elif data == 4:
         acknowledgements.append(    e.send(relays['4'], str(1), True)    )
@@ -348,7 +399,8 @@ def send_relay_signal_test(data, relays):
         
         acknowledgement_check( acknowledgements, relays, [ '4', '3', '1', '2' ], [str(1), str(0), str(0), str(0)] )
         #acknowledgement_check( acknowledgements, relays, [ '4', '3' ], [str(1), str(0)] )
-    
+        display_relays(0, 0, 0, 1)
+        
     elif data == 5:
         acknowledgements.append(    e.send(relays['4'], str(0), True)    )
         acknowledgements.append(True)
@@ -357,6 +409,7 @@ def send_relay_signal_test(data, relays):
         
         acknowledgement_check( acknowledgements, relays, [ '4', '3', '1', '2' ], [str(0), str(0), str(0), str(0)] )
         #acknowledgement_check( acknowledgements, relays, [ '4' ], [str(0)] )
+        display_relays(0, 0, 0, 0)
         
     elif data == 6:
         
@@ -366,7 +419,8 @@ def send_relay_signal_test(data, relays):
         acknowledgements.append(    e.send(relays['4'], str(1), True)    )
         
         acknowledgement_check( acknowledgements, relays, [ '1', '2', '3', '4' ], [str(1), str(1), str(1), str(1)] )
-            
+        display_relays(1, 1, 1, 1)
+        
     elif data == 7:
 
         acknowledgements.append(    e.send(relays['1'], str(1), True)    )
@@ -375,7 +429,8 @@ def send_relay_signal_test(data, relays):
         acknowledgements.append(    e.send(relays['4'], str(1), True)    )
         
         acknowledgement_check( acknowledgements, relays, [ '1', '2', '3', '4' ], [str(1), str(1), str(1), str(1)] )
-    
+        display_relays(1, 1, 1, 1)
+        
     elif data == 8:
 
         acknowledgements.append(    e.send(relays['1'], str(0), True)    )
@@ -384,7 +439,7 @@ def send_relay_signal_test(data, relays):
         acknowledgements.append(    e.send(relays['4'], str(0), True)    )
         
         acknowledgement_check( acknowledgements, relays, [ '1', '2', '3', '4' ], [str(0), str(0), str(0), str(0)] )
-
+        display_relays(0, 0, 0, 0)
 
 # Fucnction that checks if the data was sent succesfully
 # Can make this into a for loop later -> once it works well

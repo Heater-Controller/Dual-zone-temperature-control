@@ -2,6 +2,12 @@
 
 import network
 from esp import espnow
+import math
+
+
+global current_status
+current_status = [0,0,0,0,0]
+temp_value = [0,0,0,0,0,0]
 
 
 #Adding components to master's communication protocol
@@ -10,8 +16,6 @@ def add_peer(comp_list):
     for peers in comp_list:
         e.add_peer(comp_list[peers])
 
-global relay_status
-global control_signal
 
 # A WLAN interface must be active to send()/recv()
 w0 = network.WLAN(network.STA_IF)
@@ -67,6 +71,7 @@ def calculate_tTotal(tind, tT):
 # Function gives sensors specific names on the basis of their converted integer addresses
 def name_sensor(int_val):
     
+    temp_sensor_name = ""
     if (int_val == 162988747986800):
         temp_sensor_name = "sensor 1"
 
@@ -76,23 +81,21 @@ def name_sensor(int_val):
     if (int_val == 162988747990804):
         temp_sensor_name = "sensor 3"
     
-    """
-    if (int_val == ):
+    if (int_val == 162988747986428):
         temp_sensor_name = "sensor 4"
         
-    if (int_val == ):
+    if (int_val == 162988747990908):
         temp_sensor_name = "sensor 5"
         
-    if (int_val == ):
+    if (int_val == 162988747988764):
         temp_sensor_name = "sensor 6"
-    """
+
     return temp_sensor_name   
+
 
 ## Function that assign a sent temperature to the particular sensor number that sent it 
 def get_temp(sensor_name, sensor_data):
-    
-    temp_value = [0,0,0,0,0,0]
-    
+        
     if sensor_name == 'sensor 1':
         temp_value[0] = sensor_data
     
@@ -110,26 +113,28 @@ def get_temp(sensor_name, sensor_data):
         
     if sensor_name == 'sensor 6':
         temp_value[5] = sensor_data
-    
+
     return temp_value
 
-# Function to abstract relay names 
-def get_relay(dict):
-    return dict.keys()
 
-
-def check_temp(tdss, tss, control_signal):
+def check_temp(tdss, tss):
     
-    if (tdss - tss) > 1 and control_signal == "on":
-        return "yes"
+    if (tdss - tss) >= 1: 
+    #means the temperature is below treashhold
+        return "Below"
+     
+    elif (tss - tdss) >= 1:
+    #means the temperature is above treashhold
+        return "Above"
     
-    elif (tss - tdss) > 1 and control_signal == "on":
-        return "no"
+    elif (tss - tdss) < 1 and (tdss - tss) < 1:
+    #means the temperature is above treashhold
+        return "Within"
     
     else: 
-        return "control off"
+        return "Desired temperature not reached"
   
-    
+
 # Function To recive data from temperature sensors and save them in accordance to
 # The temperature sensor that sent it 
 def recieve_temp_data():
@@ -146,42 +151,203 @@ def recieve_temp_data():
         except ValueError:
             pass
         
-        temp_value = get_temp(sensor_name, sensor_data)
+        temp_value_list = get_temp(sensor_name, sensor_data)
         print(sensor_name + ": " + int(sensor_data))
         
-        return temp_value
+        return temp_value_list
          
+    
 # Function to send relay signal with the use of the relay status      
-def send_relay_signal(status, relays):
+def send_relay_signal(status, relays, triangle):
+    
+    acknowledgements = [] # Keeps track of which relays acknowledged they received a signal 
     
     if status == "on": 
 
-        e.send(relays['relay_1'], str(1), True)
-        e.send(relays['relay_1'], str(1), True)
-        e.send(relays['relay_1'], str(1), True)
-    
+        acknowledgements.append(    e.send(relays['1'], str(1), True)    ) # True if the message was received ... False if it was not received
+        acknowledgements.append(    e.send(relays['2'], str(1), True)    )
+        acknowledgements.append(    e.send(relays['3'], str(1), True)    )
+        acknowledgements.append(    e.send(relays['4'], str(1), True)    )
+        
+        acknowledgement_check( acknowledgements, relays, ['1', '2', '3', '4'], [str(1), str(1), str(1), str(1)] ) # acknowledgment and retransmission protocol 
+        
+        current_status = [1, 1, 1, 1, 0]
+        
     elif status == "off": 
          
-        e.send(relays['relay_1'], str(0), True) 
-        e.send(relays['relay_2'], str(0), True)
-        e.send(relays['relay_3'], str(0), True)
+        acknowledgements.append(    e.send(relays['1'], str(0), True)    )
+        acknowledgements.append(    e.send(relays['2'], str(0), True)    )
+        acknowledgements.append(    e.send(relays['3'], str(0), True)    )
+        acknowledgements.append(    e.send(relays['4'], str(0), True)    )
         
-# Function that sets the relay status to off when tTotal is done
-def tTotal_timer_callback(t):  
+        acknowledgement_check( acknowledgements, relays, ['1', '2', '3', '4'], [str(0), str(0), str(0), str(0)] )
+        
+        current_status = [0, 0, 0, 0, 0]
+ 
+    elif status == "soft_turn_on":
+        
+        if current_status[4] == 1: #Means hard turn_on is active
+            
+            acknowledgements.append(    e.send(relays[str(triangle[0])], str(1), True)    )
+            acknowledgements.append(True) # *** Theoretically we do not need it but need to test first
+            acknowledgements.append(True)
+            acknowledgements.append(True)
+            
+            acknowledgement_check( acknowledgements, relays, [ str(triangle[0]), '2', '3', '4'], [str(1), str(0), str(0), str(0)] )
+            # *** Theoretically can be this but need to test first  
+            #acknowledgement_check( acknowledgements, relays, [ str(triangle[0])], [str(1)] )
+                                        
+            current_status[triangle[0] - 1] = 1
+
+        else:
+            
+            for value in triangle:
+                
+                acknowledgements.append(    e.send(relays[str(value)], str(1), True)    ) 
+                acknowledgements.append(    e.send(relays[str(value)], str(1), True)    )
+                acknowledgements.append(    e.send(relays[str(value)], str(1), True)    )
+                acknowledgements.append(True)
+                
+                acknowledgement_check( acknowledgements, relays, [ str(value), str(value), str(value), '4'], [str(1), str(1), str(1), str(0)] )
+                # *** Theoretically can be this but need to test first  
+                #acknowledgement_check( acknowledgements, relays, [ str(value), str(value), str(value)], [str(1), str(1), str(1)] )
+                current_status[value - 1] = [1]
+
+    
+    elif status == "soft_turn_off":
+        
+        acknowledgements.append(    e.send(relays[str(triangle[0])], str(0), True)    )
+        acknowledgements.append(True)
+        acknowledgements.append(True)
+        acknowledgements.append(True)
+        
+        acknowledgement_check( acknowledgements, relays, [ str(triangle[0]), '2', '3', '4' ], [str(0), str(0), str(0), str(0)] )
+        
+        current_status[triangle[0] - 1] = 0
+                
+    elif status == "hard_turn_off":
+        
+        for value in triangle:
+            
+            acknowledgements.append(    e.send(relays[str(value)], str(0), True)    )
+            acknowledgements.append(    e.send(relays[str(value)], str(0), True)    )
+            acknowledgements.append(    e.send(relays[str(value)], str(0), True)    )
+            acknowledgements.append(True)
+            
+            acknowledgement_check( acknowledgements, relays, [ str(triangle[0]), '2', '3', '4' ], [str(0), str(0), str(0), str(0)] )
+            
+            current_status[value - 1] = [0]
+        
+        current_status[4] = 1
+    
+    elif status == "no_signal":
+        current_status[4] = 0
      
-    relay_status = "off"   
-    control_signal = "on"
-    send_relay_signal(relay_status, relays)
+     
+# Function that sets the relay status to off when tTotal is done
+#def tTotal_timer_callback(t):  
+     
+#    relay_status = "off"   
+#    send_relay_signal(relay_status, relays)
     
 
+# Function that we call when we finally reach tdss
+def begin_control(relay_status):  
+    send_relay_signal(relay_status, relays, [1,2,3])    
+
+
+#Function that convert the celcius degree into fareneight
 def cel_to_fah(tc):
+
     tf = (9/5) * tc + 32
     tfs = str("%.2f" % tf)
     t1 = int(tfs[3])
     t2 = int(tfs[4])
+
     if (t1 >= 7 and t2 >= 5):
         tf = math.ceil(tf)
+
     else:
         tf = math.floor(tf)
     return tf
 
+
+# Fucnction that make sure we gett all the sensor value before calculation
+def sensor_value_check(temp_value):
+    
+    check = "True" 
+    for value in temp_value:
+        
+         if value == 0:
+             
+            check = "False"
+            break
+    
+    return check
+
+
+# Fucnction that checks if the data was sent succesfully
+# Can make this into a for loop later -> once it works well
+def acknowledgement_check(_acknowledgements, relays, _relay_number, _commands):
+    
+    if _acknowledgements[0] == False: # Relay 1 acknowledgement was false -> the Relay did not receive the command
+        print('-> Relay ' + str(_relay_number[0]) + ' did not receive anything')
+        print('   The ESP will try to send 100 times before giving up if the relay does not acknowledge it received the ON/OFF command')
+        
+        ack = False
+        count_acknowledgement_tries = 100
+        
+        while count_acknowledgement_tries > 1:
+            ack = e.send(relays[_relay_number[0]], _commands[0], True)
+            count_acknowledgement_tries -= 1
+            
+            if ack == True:
+                e.send(relays[_relay_number[0]], _commands[0], True)
+                break    
+        
+    if _acknowledgements[1] == False: # Relay 2 acknowledgement
+        print('-> Relay ' + str(_relay_number[1]) + ' did not receive anything')
+        print('   The ESP will try to send 100 times before giving up if the relay does not acknowledge it received the ON/OFF command')
+        
+        ack = False
+        count_acknowledgement_tries = 100
+        
+        while count_acknowledgement_tries > 1:
+            ack = e.send(relays[_relay_number[1]], _commands[1], True)
+            count_acknowledgement_tries -= 1
+            
+            if ack == True:
+                e.send(relays[_relay_number[1]], _commands[1], True)
+                break
+            
+    if _acknowledgements[2] == False: # Relay 3 acknowledgement
+        print('-> Relay ' + str(_relay_number[2]) + ' did not receive anything')
+        print('   The ESP will try to send 100 times before giving up if the relay does not acknowledge it received the ON/OFF command')
+        
+        ack = False
+        count_acknowledgement_tries = 100
+        
+        while count_acknowledgement_tries > 1:
+            ack = e.send(relays[_relay_number[2]], _commands[2], True)
+            count_acknowledgement_tries -= 1
+           
+            if ack == True:
+                e.send(relays[_relay_number[2]], _commands[2], True)
+                break
+            
+    if _acknowledgements[3] == False: # Relay 4 acknowledgement
+        print('-> Relay ' + str(_relay_number[3]) + ' did not receive anything')
+        print('   The ESP will try to send 100 times before giving up if the relay does not acknowledge it received the ON/OFF command')
+        
+        ack = False
+        count_acknowledgement_tries = 100
+
+        while count_acknowledgement_tries > 1:
+            ack = e.send(relays[_relay_number[3]], _commands[3], True)
+            count_acknowledgement_tries -= 1
+            
+            if ack == True:
+                e.send(relays[_relay_number[3]], _commands[3], True)
+                break
+        
+    return

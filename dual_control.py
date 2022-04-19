@@ -1,21 +1,15 @@
 import time 
 from machine import Timer 
-from control_test import *
+from control import *
 from time import sleep 
 
-# Values that needs to come from learning algorithm and user 
-t1 = 8
-t2 = 10 
-t3 = 15  
-t4 = 8
-t5 = 10 
-t6 = 15 
 
 tdss1 = int(input("Enter the desired temperature of special spot 1: "))
 tdss2 = int(input("Enter the desired temperature of special spot 2: "))
 
 triangle1 = [1,2,4]
 triangle2 = [3,4,2]
+current_status = [0,0,0,0,0]
 
 # Initial calculations to get time values 
 temp_value = recieve_temp_data()
@@ -33,8 +27,8 @@ tss1 = calculate_tss(temp_value[0], temp_value[1], temp_value[2])
 tss2 = calculate_tss(temp_value[3], temp_value[4], temp_value[5])  
 
 #Get the tind time
-tind1 = calculate_tind(tdss1, tss1)
-tind2 = calculate_tind(tdss2, tss2)
+#tind1 = calculate_tind(tdss1, tss1)
+#tind2 = calculate_tind(tdss2, tss2)
 
 """""
 #Get the total time to reach special spot temp
@@ -53,16 +47,17 @@ tTotal_timer.init(mode = Timer.ONE_SHOT, period = t_wait * 60000, callback = tTo
 
 #Begin the control 
 relay_status = "on"
-send_relay_signal(relay_status, relays, triangle1) 
 temp_control_check1 = "Desired temperature not reached"
 temp_control_check2 = "Desired temperature not reached"
 
-while tdss1 != tss1 or tdss2 != tss2:
-
+while tdss1 != tss1 and tdss2 != tss2:
+    
+    current_status = send_relay_signal(relay_status, current_status, triangle1)    
+    temp_value = recieve_temp_data()
     tss1 = calculate_tss(temp_value[0], temp_value[1], temp_value[2])  
     tss2 = calculate_tss(temp_value[3], temp_value[4], temp_value[5])  
-    print("Temp in desired spot 1 = " + tdss1 + " - Tss1 value: " + str(tss1) +  "=> " + temp_control_check1)
-    print("Temp in desired spot 2 = " + tdss1 + " - Tss2 value: " + str(tss2) +  "=> " + temp_control_check2)
+    print("Temp in desired spot 1 = " + str(tdss1) + " - Tss1 value: " + str(tss1) +  " => " + temp_control_check1)
+    print("Temp in desired spot 2 = " + str(tdss2) + " - Tss2 value: " + str(tss2) +  " => " + temp_control_check2)
 
 
 """""
@@ -90,45 +85,48 @@ while True:
     temp_control_check1 = check_temp(tdss1, tss1)
     temp_control_check2 = check_temp(tdss2, tss2)
 
-    if temp_control_check1 == "Above":
+    if temp_control_check1 == "above":
          
         relay_status = "hard_turn_off"
-        send_relay_signal(relay_status, relays, triangle1)
+        current_status = send_relay_signal(relay_status, current_status, triangle1)    
         
-    elif temp_control_check1 == "Below":
+    elif temp_control_check1 == "below":
         
-        relay_status == "soft_turn_on"
-        send_relay_signal(relay_status, relays, triangle1)
+        relay_status = "soft_turn_on"
+        current_status = send_relay_signal(relay_status, current_status, triangle1)    
 
         # wait for the temperature to increase by 1 with tT 
         #tT1_timer.init(mode = Timer.ONE_SHOT, period = tT1 * 60000, callback = tT1_timer_callback)
 
-    elif temp_control_check1 == "Within":
+    elif temp_control_check1 == "within":
 
-        relay_status == "no_signal"
-        send_relay_signal(relay_status, relays, triangle1)
+        relay_status = "no_signal"
+        current_status = send_relay_signal(relay_status, current_status, triangle1)    
 
-    if temp_control_check2 == "Above":
+    if temp_control_check2 == "above":
          
         relay_status = "hard_turn_off"
-        send_relay_signal(relay_status, relays, triangle2)
+        current_status = send_relay_signal(relay_status, current_status, triangle2)    
         
-    elif temp_control_check2 == "Below":
+    elif temp_control_check2 == "below":
         
-        relay_status == "soft_turn_on"
-        send_relay_signal(relay_status, relays, triangle2)
+        relay_status = "soft_turn_on"
+        current_status = send_relay_signal(relay_status, current_status, triangle2)    
 
         # wait for the temperature to increase by 1 with tT 
         #tT2_timer.init(mode = Timer.ONE_SHOT, period = tT2 * 60000, callback = tT2_timer_callback)
     
     elif temp_control_check2 == "Within":
         
-        relay_status == "no_signal"
-        send_relay_signal(relay_status, relays, triangle2)
+        relay_status = "no_signal"
+        current_status = send_relay_signal(relay_status, current_status, triangle2)    
 
     print("Temperature value: " + str(temp_value))
-    print("Temp in desired spot 1 = " + tdss1 + " - Tss1 value: " + str(tss1) +  "=> "+ temp_control_check1)
-    print("Temp in desired spot 2 = " + tdss2 + " - Tss2 value: " + str(tss2) +  "=> "+ temp_control_check2)
+    print("Temp in desired spot 1 = " + str(tdss1) + " - Tss1 value: " + str(tss1) +  " => " + 
+        temp_control_check1 + ", Signal = " + relay_status + ", Hard turn off = " + str(current_status[4]))
+    print("Temp in desired spot 2 = " + str(tdss2) + " - Tss2 value: " + str(tss2) +  " => " + 
+        temp_control_check2 + ", Signal = " + relay_status + ", Hard turn off = " + str(current_status[4]))
 
         
         
+

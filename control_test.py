@@ -4,48 +4,6 @@ import network
 from esp import espnow
 import math
 
-
-#Function sends data to ThingSpeak cloud server using socket API and HTTP GET request
-def display_SS(field1, field2):
-    
-    URL = 'https://api.thingspeak.com/update?api_key='
-    key = '280D6470RK8VLC7N'
-    header = '&field1=' + str(field1) + '&field2=' + str(field2)
-    new = URL + key + header
-    
-    _, _, host, path = new.split('/', 3)
-    addr = socket.getaddrinfo(host, 80)[0][-1]
-
-    sobj = socket.socket()
-    sobj.connect(addr)
-    sobj.send(bytes('GET /%s HTTP/1.0\r\nHost: %s\r\n\r\n' % (path, host), 'utf8'))
-    
-    data = sobj.recv(100)
-    sobj.close()
-    
-    return
-
-
-def display_relays(relay_1, relay_2, relay_3, relay_4):
-    
-    URL = 'https://api.thingspeak.com/update?api_key='
-    key = '280D6470RK8VLC7N'
-    header = '&field3=' + str(relay_1) + '&field4=' + str(relay_2) + '&field5=' + str(relay_3) + '&field6=' + str(relay_4)
-    new = URL + key + header
-    
-    _, _, host, path = new.split('/', 3)
-    addr = socket.getaddrinfo(host, 80)[0][-1]
-
-    sobj = socket.socket()
-    sobj.connect(addr)
-    sobj.send(bytes('GET /%s HTTP/1.0\r\nHost: %s\r\n\r\n' % (path, host), 'utf8'))
-    
-    data = sobj.recv(100)
-    sobj.close()
-    
-    return
-
-
 #Adding components to master's communication protocol
 def add_peer(comp_list):
     
@@ -72,13 +30,6 @@ w0.active(True)
 # ESP protocol initalization
 e = espnow.ESPNow()
 e.init()
-
-#Setting up network credentials
-SSID = "OnePlus Nord N10 5G-ba2b"                 
-Password = "aryan1234"
-
-#Connecting client ESP to Wifi 
-w0.connect(SSID, Password)
 
 # MAC addresses of temperature sensors' wifi interfaces
 temp_sensors = { 'temp_sensor_1' : b'\x94\x3c\xc6\x6d\x17\x70', 'temp_sensor_2' : b'\x94\x3c\xc6\x6d\x1b\x68',
@@ -129,6 +80,8 @@ def calculate_tTotal(tind, tT):
 
 # Function gives sensors specific names on the basis of their converted integer addresses
 def name_sensor(int_val):
+    
+    temp_sensor_name = " "
     
     if (int_val == 162988747986800):
         temp_sensor_name = "sensor 1"

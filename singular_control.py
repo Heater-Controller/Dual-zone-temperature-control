@@ -19,42 +19,52 @@ while sensor_value_check(temp_value) == "False":
 tT = calcuate_tT(t1, t2, t3)
 tss = calculate_tss(temp_value[0], temp_value[1], temp_value[2])  
 tind = calculate_tind(tdss, tss)
-tTotal = calculate_tTotal(tind, tT)
+#tTotal = calculate_tTotal(tind, tT)
  
 #Initialize tTotal timer interupt to achieve desired temperature 
-tTotal_timer = Timer(4)
-tT_timer = Timer(2)
-tTotal_timer.init(mode = Timer.ONE_SHOT, period = tTotal * 1000, callback = tTotal_timer_callback)
+#tTotal_timer = Timer(4)
+#tT_timer = Timer(2)
+#tTotal_timer.init(mode = Timer.ONE_SHOT, period = tTotal * 1000, callback = tTotal_timer_callback)
 
 # Begin the control 
 relay_status = "on"
 send_relay_signal(relay_status, relays, triangle)    
+temp_control_check = "Desired temperature not reached"
 
-def tT_timer_callback(t):
+#def tT_timer_callback(t):
     
-    relay_status = "hard_turn_off"
-    send_relay_signal(relay_status, relays, triangle)
-    
+#    relay_status = "hard_turn_off"
+#    send_relay_signal(relay_status, relays, triangle)
+
+while tdss != tss:
+
+    tss = calculate_tss(temp_value[0], temp_value[1], temp_value[2])  
+    print("Temp in desired spot 1 = " + tdss + " - Tss value: " + str(tss) +  "=> " + temp_control_check)
+
+   
 while True:
     
     temp_value = recieve_temp_data()
     tss = calculate_tss(temp_value[0], temp_value[1], temp_value[2])  
-    temp_control_check = check_temp(tdss, tss, control_signal)
+    temp_control_check = check_temp(tdss, tss)
     
-    if temp_control_check == "above":
+    if temp_control_check == "Above":
          
         relay_status = "hard_turn_off"
         send_relay_signal(relay_status, relays, triangle)
         
-    elif temp_control_check == "below":
+    elif temp_control_check == "Below":
         
         relay_status == "soft_turn_on"
         send_relay_signal(relay_status, relays, triangle)
 
         # wait for the temperature to increase by 1 with tT 
-        tT_timer.init(mode = Timer.ONE_SHOT, period = tT * 60000, callback = tT_timer_callback)
+        #tT_timer.init(mode = Timer.ONE_SHOT, period = tT * 60000, callback = tT_timer_callback)
 
-    elif temp_control_check == "within":
+    elif temp_control_check == "Within":
 
         relay_status == "no_signal"
         send_relay_signal(relay_status, relays, triangle)
+
+    print("Temperature value: " + str(temp_value))
+    print("Temp in desired spot 1 = " + tdss + " - Tss value: " + str(tss) +  "=> "+ temp_control_check)

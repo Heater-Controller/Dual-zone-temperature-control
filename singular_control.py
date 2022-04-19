@@ -1,6 +1,6 @@
 import time 
 from machine import Timer 
-from control_test import *
+from control import *
 
 # Values that needs to come from learning algorithm and user 
 t1 = 8

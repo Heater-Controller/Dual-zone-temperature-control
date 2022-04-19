@@ -4,6 +4,75 @@ import network
 from esp import espnow
 import math
 
+
+#Function sends data to ThingSpeak cloud server using socket API and HTTP GET request
+def display_SS(field1, field2):
+    
+    #Setting up network credentials
+    WiFi_ssid ="iPhone"                 
+    WiFi_password ="tacos321"
+
+    if not station.isconnected():
+        print('Connecting to network...')
+        station.connect(WiFi_ssid, WiFi_password) # connect to WiFi network
+        while not station.isconnected():          # check if the connection is established
+            pass
+    
+    
+    URL = 'https://api.thingspeak.com/update?api_key='
+    key = '280D6470RK8VLC7N'
+    header = '&field1=' + str(field1) + '&field2=' + str(field2)
+    new = URL + key + header
+    
+    _, _, host, path = new.split('/', 3)
+    addr = socket.getaddrinfo(host, 80)[0][-1]
+
+    sobj = socket.socket()
+    sobj.connect(addr)
+    sobj.send(bytes('GET /%s HTTP/1.0\r\nHost: %s\r\n\r\n' % (path, host), 'utf8'))
+    
+    data = sobj.recv(100)
+    sobj.close()
+    
+    
+    station.disconnect()  # disconnect from hot-spot
+    
+    return
+
+
+def display_relays(relay_1, relay_2, relay_3, relay_4):
+    
+    #Setting up network credentials
+    WiFi_ssid ="iPhone"                 
+    WiFi_password ="tacos321"
+    
+    if not station.isconnected():
+        print('connecting to network...')
+        station.connect(WiFi_ssid, WiFi_password) # connect to WiFi network
+        while not station.isconnected():          # check if the connection is established
+            pass
+    
+    
+    URL = 'https://api.thingspeak.com/update?api_key='
+    key = '280D6470RK8VLC7N'
+    header = '&field3=' + str(relay_1) + '&field4=' + str(relay_2) + '&field5=' + str(relay_3) + '&field6=' + str(relay_4)
+    new = URL + key + header
+    
+    _, _, host, path = new.split('/', 3)
+    addr = socket.getaddrinfo(host, 80)[0][-1]
+
+    sobj = socket.socket()
+    sobj.connect(addr)
+    sobj.send(bytes('GET /%s HTTP/1.0\r\nHost: %s\r\n\r\n' % (path, host), 'utf8'))
+    
+    data = sobj.recv(100)
+    sobj.close()
+    
+    station.disconnect()  # disconnect from hot-spot
+    
+    return
+
+
 #Adding components to master's communication protocol
 def add_peer(comp_list):
     
@@ -24,8 +93,8 @@ temp_value = [0,0,0,0,0,0]
 
 
 # A WLAN interface must be active to send()/recv()
-w0 = network.WLAN(network.STA_IF)
-w0.active(True)
+station = network.WLAN(network.STA_IF)
+station.active(True)
 
 # ESP protocol initalization
 e = espnow.ESPNow()

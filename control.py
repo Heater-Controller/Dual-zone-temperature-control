@@ -5,8 +5,6 @@ from esp import espnow
 import math
 
 
-global current_status
-current_status = [0,0,0,0,0]
 temp_value = [0,0,0,0,0,0]
 
 
@@ -31,17 +29,21 @@ temp_sensors = { 'temp_sensor_1' : b'\x94\x3c\xc6\x6d\x17\x70', 'temp_sensor_2' 
                  'temp_sensor_5' : b'\x94\x3c\xc6\x6d\x27\x7c', 'temp_sensor_6' : b'\x94\x3c\xc6\x6d\x1f\x1c'}
 
 # MAC addresses of relays' wifi interfaces
-relays = {'relay_1' : b'\x94\x3c\xc6\x6d\x15\x40', 'relay_2' : b'\x94\x3c\xc6\x6d\x29\xd4', 
-          'relay_3' : b'\x94\x3c\xc6\x6d\x14\x74', 'relay_4' : b'\x94\x3c\xc6\x6d\x29\xec'}
+relays = {'1' : b'\x94\x3c\xc6\x6d\x15\x40', '2' : b'\x94\x3c\xc6\x6d\x29\xd4', 
+          '3' : b'\x94\x3c\xc6\x6d\x14\x74', '4' : b'\x94\x3c\xc6\x6d\x29\xec'}
 
 # Adding temperature sensors and relays to master's communication protocol
 add_peer(temp_sensors)
 add_peer(relays)
+
+
 # Fucntion that calcuate tss, which is the measured temperature at a special spot
 def calculate_tss(temp1, temp2, temp3):
     
     tss = (temp1 + temp2 + temp3)/3
-    return tss
+    tss_to_fareingth = cel_to_fah(tss)  
+    return tss_to_fareingth
+
 
 
 # Fucntion that calcuate tind, which is the amount by which temperature has to
@@ -121,15 +123,15 @@ def check_temp(tdss, tss):
     
     if (tdss - tss) >= 1: 
     #means the temperature is below treashhold
-        return "Below"
+        return "below"
      
     elif (tss - tdss) >= 1:
     #means the temperature is above treashhold
-        return "Above"
+        return "above"
     
     elif (tss - tdss) < 1 and (tdss - tss) < 1:
     #means the temperature is above treashhold
-        return "Within"
+        return "within"
     
     else: 
         return "Desired temperature not reached"
@@ -147,18 +149,18 @@ def recieve_temp_data():
         sensor_name = name_sensor(host_conv_val)
         
         try:
-            sensor_data = int(msg.decode("utf-8"))/100000
+            sensor_data = int(msg.decode("utf-8"))/10000
         except ValueError:
             pass
         
         temp_value_list = get_temp(sensor_name, sensor_data)
-        print(sensor_name + ": " + int(sensor_data))
+        print(sensor_name + ": " + str(sensor_data))
         
         return temp_value_list
-         
+
     
 # Function to send relay signal with the use of the relay status      
-def send_relay_signal(status, relays, triangle):
+def send_relay_signal(status, current_status, triangle):
     
     acknowledgements = [] # Keeps track of which relays acknowledged they received a signal 
     
@@ -197,22 +199,17 @@ def send_relay_signal(status, relays, triangle):
             # *** Theoretically can be this but need to test first  
             #acknowledgement_check( acknowledgements, relays, [ str(triangle[0])], [str(1)] )
                                         
-            current_status[triangle[0] - 1] = 1
+            current_status[(triangle[0] - 1)] = 1
 
         else:
             
             for value in triangle:
                 
                 acknowledgements.append(    e.send(relays[str(value)], str(1), True)    ) 
-                acknowledgements.append(    e.send(relays[str(value)], str(1), True)    )
-                acknowledgements.append(    e.send(relays[str(value)], str(1), True)    )
-                acknowledgements.append(True)
-                
-                acknowledgement_check( acknowledgements, relays, [ str(value), str(value), str(value), '4'], [str(1), str(1), str(1), str(0)] )
-                # *** Theoretically can be this but need to test first  
-                #acknowledgement_check( acknowledgements, relays, [ str(value), str(value), str(value)], [str(1), str(1), str(1)] )
-                current_status[value - 1] = [1]
-
+                current_status[(value - 1)] = 1
+            
+            acknowledgements.append(True)     
+            acknowledgement_check( acknowledgements, relays, [ str(value), str(value), str(value), '4'], [str(1), str(1), str(1), str(0)] )
     
     elif status == "soft_turn_off":
         
@@ -223,25 +220,23 @@ def send_relay_signal(status, relays, triangle):
         
         acknowledgement_check( acknowledgements, relays, [ str(triangle[0]), '2', '3', '4' ], [str(0), str(0), str(0), str(0)] )
         
-        current_status[triangle[0] - 1] = 0
+        current_status[(triangle[0] - 1)] = 0
                 
     elif status == "hard_turn_off":
         
         for value in triangle:
             
             acknowledgements.append(    e.send(relays[str(value)], str(0), True)    )
-            acknowledgements.append(    e.send(relays[str(value)], str(0), True)    )
-            acknowledgements.append(    e.send(relays[str(value)], str(0), True)    )
-            acknowledgements.append(True)
-            
-            acknowledgement_check( acknowledgements, relays, [ str(triangle[0]), '2', '3', '4' ], [str(0), str(0), str(0), str(0)] )
-            
-            current_status[value - 1] = [0]
+            current_status[(value - 1)] = 0
         
         current_status[4] = 1
+        acknowledgements.append(True) 
+        acknowledgement_check( acknowledgements, relays, [ str(triangle[0]), '2', '3', '4' ], [str(0), str(0), str(0), str(0)] )
     
     elif status == "no_signal":
         current_status[4] = 0
+    
+    return current_status
      
      
 # Function that sets the relay status to off when tTotal is done
@@ -349,5 +344,4 @@ def acknowledgement_check(_acknowledgements, relays, _relay_number, _commands):
             if ack == True:
                 e.send(relays[_relay_number[3]], _commands[3], True)
                 break
-        
-    return
+       

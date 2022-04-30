@@ -1,0 +1,89 @@
+
+%%% Sensor 1
+data_start_1 = 425;
+data_end_1 = 8624;
+y_sensor_1_data = temp_sensor_1_data_march27.Temperature_Sensor_1(data_start_1:data_end_1,:);
+x_sensor_1_data = temp_sensor_1_data_march27.Second_Sensor_1(data_start_1:data_end_1,:);
+for row = 1: size(temp_sensor_1_data_march27.Second_Sensor_1(data_start_1:data_end_1,:))
+    x_sensor_1_data(row) = row;
+end
+%%%
+
+%%%
+filtered_data = output_data_for_test.output(:);
+%%%
+
+%%{ 
+figure(1);
+plot(x_sensor_1_data, y_sensor_1_data)
+title('Temperature vs Time')
+ylabel('Temp (Celcius)')
+xlabel('Time (sec)')
+hold on;
+
+%%{ 
+window = 60;
+method = 'lowess'; % 'movmedian'
+plot(x_sensor_1_data, smoothdata(y_sensor_1_data,method,window))
+title('Temperature vs Time')
+ylabel('Temp (Celcius)')
+xlabel('Time (sec)')
+hold on;
+%}
+
+plot(x_sensor_1_data, filtered_data)
+title('Temperature vs Time')
+ylabel('Temp (Celcius)')
+xlabel('Time (sec)')
+
+legend('Raw', 'Matlab Filter', 'My filter');
+%}
+
+%%{ 
+figure(2);
+tiledlayout(3,1);
+nexttile;
+
+plot(x_sensor_1_data, y_sensor_1_data)
+title('Raw')
+ylabel('Temp (Celcius)')
+xlabel('Time (sec)')
+hold on;
+nexttile;
+
+window = 60;
+method = 'lowess'; % 'movmedian'
+plot(x_sensor_1_data, smoothdata(y_sensor_1_data,method,window))
+title('Matlab Filter')
+ylabel('Temp (Celcius)')
+xlabel('Time (sec)')
+hold on;
+nexttile;
+
+plot(x_sensor_1_data, filtered_data)
+title('My filter')
+ylabel('Temp (Celcius)')
+xlabel('Time (sec)')
+
+%}
+
+y1 = [26.5; 26.5; 26.5; 26.5; 26.5625; 26.5625; 26.5625; 26.5625; 26.5625; 26.5625; 26.5625; 26.5; 26.5; 26.5; 26.5; 26.5; 26.5; 26.5; 26.5; 26.5; 26.5; 26.5; 26.5];
+y2 = [26.5625; 26.5625; 26.5625; 26.5; 26.5625; 26.5625; 26.5625; 26.5625; 26.5625; 26.5; 26.5625; 26.5; 26.5; 26.5; 26.5; 26.5625; 26.5; 26.5; 26.5; 26.5625; 26.5; 26.5625; 26.5625];
+x = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23];
+figure(4);
+plot(x, y1)
+title('Temperature vs Time')
+ylabel('Temp (Celcius)')
+xlabel('Time (sec)')
+hold on;
+legend('Filter');
+
+figure(5);
+plot(x, y2)
+title('Temperature vs Time')
+ylabel('Temp (Celcius)')
+xlabel('Time (sec)')
+hold on;
+legend('Raw');
+
+
